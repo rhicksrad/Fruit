@@ -52,7 +52,10 @@ export function viewGame() {
   function updateUI() {
     betValue.textContent = String(state.bet);
     coinDisplay.textContent = fmt(state.coins);
-    if (arm) arm.disabled = spinning || state.coins < state.bet;
+    if (arm) {
+      const locked = spinning || state.coins < state.bet;
+      arm.classList.toggle('locked', locked);
+    }
   }
 
   function applyAchievementChecks(win) {
@@ -125,8 +128,8 @@ export function viewGame() {
       }
       applyAchievementChecks(win);
       ensureCoins(state.bet);
-      updateUI();
       spinning = false;
+      updateUI();
     }, settleTime + 50);
   }
 
@@ -173,10 +176,11 @@ export function viewGame() {
   arm.appendChild(el('div', { class: 'stick' }));
   arm.appendChild(el('div', { class: 'knob' }));
   const onPointerDown = () => {
-    if (arm.disabled) return;
+    if (arm.classList.contains('locked')) return;
     arm.classList.add('pulling');
   };
   const onPointerUp = () => {
+    if (spinning) return; // safety: don't trigger multiple spins
     if (!arm.classList.contains('pulling')) return;
     arm.classList.remove('pulling');
     spin();

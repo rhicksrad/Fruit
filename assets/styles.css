@@ -351,7 +351,7 @@ body {
   place-items: end;
 }
 
-.arm:disabled { cursor: not-allowed; opacity: 0.8; }
+.arm.locked { opacity: 0.6; pointer-events: none; }
 
 .arm .track {
   position: absolute;
