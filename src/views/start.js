@@ -13,7 +13,7 @@ export function viewStart() {
         el('span', { class: 'kbd' }, ['Space']),
         ' Spin',
         el('span', { class: 'kbd' }, ['1–9']),
-        ' Bet size',
+        ' Bet size (x10)',
       ]),
       el('div', { class: 'left-controls' }, [
         el('button', { class: 'btn btn-primary', 'data-nav': '/game' }, ['Start Playing']),

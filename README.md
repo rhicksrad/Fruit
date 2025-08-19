@@ -5,11 +5,11 @@ A colorful, classic-style 3‑reel Fruit Machine for fun coins. Includes Start, 
 ## Features
 
 - Classic 3 reels with weighted fruit symbols and payouts
-- Quick spin, adjustable bet (1–50)
+- Quick spin, adjustable bet (10–100)
 - Fun coin economy only (no real money)
 - Achievements: first spin, 100 spins, big win, jackpot, comeback
 - Themes (Classic, Emerald, Neon, Midnight), Web Audio sounds
-- Keyboard: Space (spin), 1–9 (set bet)
+- Keyboard: Space (spin), 1–9 (set bet ×10)
 
 ## Run Locally
 

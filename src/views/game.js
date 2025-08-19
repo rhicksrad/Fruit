@@ -1,6 +1,6 @@
 import { el, fmt, announce } from '../utils.js';
 import { state } from '../state.js';
-import { Symbols, randomReels, computePayout } from '../slot.js';
+import { Symbols, randomReels, computePayout3Lines } from '../slot.js';
 import { sClick, sSpin, sWin, sLose, setSoundEnabled } from '../sound.js';
 
 function symbolEmoji(idx) {
@@ -20,8 +20,8 @@ export function viewGame() {
   let spinning = false;
 
   const TILE_H = 96;
-  const WIN_H = 132;
-  const CENTER_OFFSET = (WIN_H / 2) - (TILE_H / 2); // 18px
+  const WIN_H = 288; // show 3 tiles
+  const CENTER_OFFSET = (WIN_H / 2) - (TILE_H / 2);
   const CYCLES = 50;
 
   function buildStripElement(initialSymbolIndex) {
@@ -113,15 +113,49 @@ export function viewGame() {
     const settleTime = (state.settings.quickSpin ? 600 : 1600) + 2 * 260;
     setTimeout(() => {
       reelEls.forEach((r) => r.classList.remove('spinning'));
-      const win = computePayout(reels, state.bet);
+      // Construct a 3x3 grid using the center index (mid row) and adjacent symbols for top/bottom
+      const wrap = (n) => ((n % Symbols.length) + Symbols.length) % Symbols.length;
+      const grid = [
+        [ wrap(reels[0] - 1), wrap(reels[1] - 1), wrap(reels[2] - 1) ],
+        [ reels[0], reels[1], reels[2] ],
+        [ wrap(reels[0] + 1), wrap(reels[1] + 1), wrap(reels[2] + 1) ],
+      ];
+      const result = computePayout3Lines(grid, state.bet);
+      const win = result.total;
       if (win > 0) {
         state.coins += win;
         state.bestWin = Math.max(state.bestWin, win);
         sWin();
-        message.textContent = `You won ${fmt(win)}!`;
+        const parts = [];
+        if (result.breakdown.top) parts.push(`Top: ${fmt(result.breakdown.top)}`);
+        if (result.breakdown.mid) parts.push(`Middle: ${fmt(result.breakdown.mid)}`);
+        if (result.breakdown.bot) parts.push(`Bottom: ${fmt(result.breakdown.bot)}`);
+        message.textContent = `You won ${fmt(win)}! ${parts.length ? '(' + parts.join(', ') + ')' : ''}`;
         machine.classList.add('flash-win');
         setTimeout(() => machine.classList.remove('flash-win'), 800);
         announce('Win');
+        const rowsOn = [!!result.breakdown.top, !!result.breakdown.mid, !!result.breakdown.bot];
+        reelEls.forEach((reel) => {
+          const glows = reel.querySelectorAll('.row-glow');
+          if (glows.length === 3) {
+            glows[0].classList.toggle('on', rowsOn[0]);
+            glows[1].classList.toggle('on', rowsOn[1]);
+            glows[2].classList.toggle('on', rowsOn[2]);
+          }
+        });
+        // Measure and align diagonal lines dynamically
+        const rect = reelsRow.getBoundingClientRect();
+        const width = rect.width;
+        const angle = Math.atan((2 * TILE_H) / width) * (180 / Math.PI); // rise over run across three columns
+        diagDown.style.transform = `rotate(${angle}deg)`;
+        diagUp.style.transform = `rotate(${-angle}deg)`;
+        diagDown.classList.toggle('on', !!result.breakdown.diagDown);
+        diagUp.classList.toggle('on', !!result.breakdown.diagUp);
+        setTimeout(() => {
+          reelEls.forEach((r) => r.querySelectorAll('.row-glow.on').forEach((n) => n.classList.remove('on')));
+          diagDown.classList.remove('on');
+          diagUp.classList.remove('on');
+        }, 1200);
       } else {
         sLose();
         message.textContent = 'No win — try again!';
@@ -134,7 +168,7 @@ export function viewGame() {
   }
 
   function changeBet(delta) {
-    const next = Math.max(1, Math.min(50, state.bet + delta));
+    const next = Math.max(10, Math.min(100, state.bet + delta));
     state.bet = next;
     sClick();
     updateUI();
@@ -158,12 +192,23 @@ export function viewGame() {
     windowEl.appendChild(strip);
     r.appendChild(windowEl);
     r.appendChild(el('div', { class: 'reel-highlight' }));
+    r.appendChild(el('div', { class: 'reel-guides' }));
+    const topGlow = el('div', { class: 'row-glow', style: 'top: 48px;' });
+    const midGlow = el('div', { class: 'row-glow', style: 'top: 144px;' });
+    const botGlow = el('div', { class: 'row-glow', style: 'top: 240px;' });
+    r.appendChild(topGlow);
+    r.appendChild(midGlow);
+    r.appendChild(botGlow);
     reelsRow.appendChild(r);
     return r;
   });
   machine.appendChild(reelsRow);
   reelsRow.appendChild(topLights);
   reelsRow.appendChild(bottomLights);
+  const diagDown = el('div', { class: 'diag-line diag-down' });
+  const diagUp = el('div', { class: 'diag-line diag-up' });
+  const diag = el('div', { class: 'diag-overlay' }, [diagDown, diagUp]);
+  machine.appendChild(diag);
 
   const controls = el('div', { class: 'controls' });
   const left = el('div', { class: 'left-controls' });
@@ -221,8 +266,8 @@ export function viewGame() {
       e.preventDefault();
       spin();
     } else if (/^[1-9]$/.test(e.key)) {
-      const digit = Number(e.key);
-      state.bet = Math.max(1, Math.min(50, digit));
+      const digit = Number(e.key) * 10; // map 1..9 to 10..90
+      state.bet = Math.max(10, Math.min(100, digit));
       updateUI();
     }
   };

@@ -1,6 +1,6 @@
 const defaultState = {
   coins: 100,
-  bet: 5,
+  bet: 10,
   spins: 0,
   bestWin: 0,
   achievements: {
