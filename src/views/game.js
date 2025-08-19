@@ -22,7 +22,7 @@ export function viewGame() {
   const TILE_H = 96;
   const WIN_H = 288; // show 3 tiles
   const CENTER_OFFSET = (WIN_H / 2) - (TILE_H / 2);
-  const CYCLES = 50;
+  const CYCLES = 16; // smaller strip for performance; we normalize each spin
 
   function buildStripElement(initialSymbolIndex) {
     const strip = el('div', { class: 'strip' });
@@ -33,7 +33,7 @@ export function viewGame() {
     const absIndex = initialCycle * Symbols.length + (initialSymbolIndex % Symbols.length);
     strip.dataset.indexAbs = String(absIndex);
     const translate = -(absIndex * TILE_H - CENTER_OFFSET);
-    strip.style.transform = `translateY(${translate}px)`;
+    strip.style.transform = `translate3d(0, ${translate}px, 0)`;
     return strip;
   }
 
@@ -43,7 +43,7 @@ export function viewGame() {
       const absIndex = Number(strip.dataset.indexAbs || '0');
       const translate = -(absIndex * TILE_H - CENTER_OFFSET);
       strip.style.transition = 'none';
-      strip.style.transform = `translateY(${translate}px)`;
+      strip.style.transform = `translate3d(0, ${translate}px, 0)`;
       void strip.offsetHeight; // reflow
       strip.style.transition = '';
     });
@@ -88,7 +88,7 @@ export function viewGame() {
       strip.dataset.indexAbs = String(centerAbs);
       const snap = -(centerAbs * TILE_H - CENTER_OFFSET);
       strip.style.transition = 'none';
-      strip.style.transform = `translateY(${snap}px)`;
+      strip.style.transform = `translate3d(0, ${snap}px, 0)`;
       void strip.offsetHeight; // reflow to apply without animation
       strip.style.transition = '';
     });
@@ -100,13 +100,16 @@ export function viewGame() {
       const currentAbs = Number(strip.dataset.indexAbs || '0');
       const currentMod = ((currentAbs % Symbols.length) + Symbols.length) % Symbols.length;
       const targetSymbol = newRoll[i];
-      const extraCycles = 4 + i * 2; // 4,6,8
+      // Choose extra cycles but clamp to keep within strip bounds
+      const middleCycle = Math.floor(CYCLES / 2);
+      const maxExtra = Math.max(2, CYCLES - middleCycle - 2);
+      const extraCycles = Math.min(maxExtra, 4 + i * 1); // 4,5,6
       const deltaSymbol = (Symbols.length + targetSymbol - currentMod) % Symbols.length;
       const nextAbs = currentAbs + extraCycles * Symbols.length + deltaSymbol;
       const translate = -(nextAbs * TILE_H - CENTER_OFFSET);
       strip.dataset.indexAbs = String(nextAbs);
       strip.style.transition = `transform ${baseDur + i * 260}ms cubic-bezier(.09,.79,.21,1)`;
-      strip.style.transform = `translateY(${translate}px)`;
+      strip.style.transform = `translate3d(0, ${translate}px, 0)`;
       reels[i] = targetSymbol;
     });
 

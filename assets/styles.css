@@ -306,7 +306,7 @@ body {
   will-change: transform;
   display: flex;
   flex-direction: column;
-  transform: translateY(0);
+  transform: translate3d(0,0,0);
   transition: transform 1s cubic-bezier(.12,.67,.21,.99);
   backface-visibility: hidden;
   transform-style: preserve-3d;
@@ -316,7 +316,7 @@ body {
   height: 96px;
   display: grid;
   place-items: center;
-  font-size: 72px;
+  font-size: 68px; /* reduce to prevent fallback glyph boxes on some platforms */
   line-height: 1;
   filter: drop-shadow(0 2px 2px rgba(0,0,0,0.45));
 }
