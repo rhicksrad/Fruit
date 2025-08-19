@@ -1,5 +1,6 @@
 import { navigateTo, initRouter } from './router.js';
 import { state, initState, subscribe } from './state.js';
+import { primeSound } from './sound.js';
 import { viewStart } from './views/start.js';
 import { viewGame } from './views/game.js';
 import { viewSettings } from './views/settings.js';
@@ -64,7 +65,18 @@ function main() {
       const route = target.getAttribute('data-nav');
       if (route) navigateTo(route);
     }
+    primeSound();
   });
+
+  // In case the user interacts via keyboard first (e.g., Space to spin)
+  window.addEventListener('keydown', () => {
+    primeSound();
+  }, { once: false });
+
+  // Also prime on first pointer interaction (mouse/touch/pen)
+  window.addEventListener('pointerdown', () => {
+    primeSound();
+  }, { once: false });
 
   window.addEventListener('storage', (event) => {
     if (event.key === 'fruitmachine_state') {

@@ -1,7 +1,7 @@
 import { el, fmt, announce } from '../utils.js';
 import { state } from '../state.js';
 import { Symbols, randomReels, computePayout } from '../slot.js';
-import { sClick, sSpin, sHold, sWin, sLose, setSoundEnabled } from '../sound.js';
+import { sClick, sSpin, sWin, sLose, setSoundEnabled } from '../sound.js';
 
 function symbolEmoji(idx) {
   return Symbols[idx].emoji;
@@ -17,20 +17,42 @@ export function viewGame() {
   setSoundEnabled(state.settings.sound);
 
   let reels = randomReels();
-  const held = [...state.reelsHold];
   let spinning = false;
+
+  const TILE_H = 96;
+  const WIN_H = 132;
+  const CENTER_OFFSET = (WIN_H / 2) - (TILE_H / 2); // 18px
+  const CYCLES = 50;
+
+  function buildStripElement(initialSymbolIndex) {
+    const strip = el('div', { class: 'strip' });
+    for (let c = 0; c < CYCLES; c++) {
+      Symbols.forEach((s) => strip.appendChild(el('div', { class: 'symbol-tile' }, [s.emoji])));
+    }
+    const initialCycle = Math.floor(CYCLES / 2);
+    const absIndex = initialCycle * Symbols.length + (initialSymbolIndex % Symbols.length);
+    strip.dataset.indexAbs = String(absIndex);
+    const translate = -(absIndex * TILE_H - CENTER_OFFSET);
+    strip.style.transform = `translateY(${translate}px)`;
+    return strip;
+  }
 
   function renderReels() {
     reelEls.forEach((r, i) => {
-      r.querySelector('.symbol').textContent = symbolEmoji(reels[i]);
-      r.dataset.hold = String(held[i]);
+      const strip = r.querySelector('.strip');
+      const absIndex = Number(strip.dataset.indexAbs || '0');
+      const translate = -(absIndex * TILE_H - CENTER_OFFSET);
+      strip.style.transition = 'none';
+      strip.style.transform = `translateY(${translate}px)`;
+      void strip.offsetHeight; // reflow
+      strip.style.transition = '';
     });
   }
 
   function updateUI() {
     betValue.textContent = String(state.bet);
     coinDisplay.textContent = fmt(state.coins);
-    spinBtn.disabled = spinning || state.coins < state.bet;
+    if (arm) arm.disabled = spinning || state.coins < state.bet;
   }
 
   function applyAchievementChecks(win) {
@@ -53,12 +75,39 @@ export function viewGame() {
     announce('Spinning');
 
     const duration = state.settings.quickSpin ? 350 : 1000;
+    // Normalize strips to middle cycle to avoid overflow
+    const middleCycle = Math.floor(CYCLES / 2);
+    reelEls.forEach((r) => {
+      const strip = r.querySelector('.strip');
+      const currentAbsRaw = Number(strip.dataset.indexAbs || '0');
+      const currentMod = ((currentAbsRaw % Symbols.length) + Symbols.length) % Symbols.length;
+      const centerAbs = middleCycle * Symbols.length + currentMod;
+      strip.dataset.indexAbs = String(centerAbs);
+      const snap = -(centerAbs * TILE_H - CENTER_OFFSET);
+      strip.style.transition = 'none';
+      strip.style.transform = `translateY(${snap}px)`;
+      void strip.offsetHeight; // reflow to apply without animation
+      strip.style.transition = '';
+    });
+    const newRoll = randomReels();
+    const baseDur = state.settings.quickSpin ? 600 : 1600;
     reelEls.forEach((r, i) => {
       r.classList.add('spinning');
-      if (!held[i]) reels[i] = randomReels()[i];
+      const strip = r.querySelector('.strip');
+      const currentAbs = Number(strip.dataset.indexAbs || '0');
+      const currentMod = ((currentAbs % Symbols.length) + Symbols.length) % Symbols.length;
+      const targetSymbol = newRoll[i];
+      const extraCycles = 4 + i * 2; // 4,6,8
+      const deltaSymbol = (Symbols.length + targetSymbol - currentMod) % Symbols.length;
+      const nextAbs = currentAbs + extraCycles * Symbols.length + deltaSymbol;
+      const translate = -(nextAbs * TILE_H - CENTER_OFFSET);
+      strip.dataset.indexAbs = String(nextAbs);
+      strip.style.transition = `transform ${baseDur + i * 260}ms cubic-bezier(.09,.79,.21,1)`;
+      strip.style.transform = `translateY(${translate}px)`;
+      reels[i] = targetSymbol;
     });
-    renderReels();
 
+    const settleTime = (state.settings.quickSpin ? 600 : 1600) + 2 * 260;
     setTimeout(() => {
       reelEls.forEach((r) => r.classList.remove('spinning'));
       const win = computePayout(reels, state.bet);
@@ -67,27 +116,18 @@ export function viewGame() {
         state.bestWin = Math.max(state.bestWin, win);
         sWin();
         message.textContent = `You won ${fmt(win)}!`;
+        machine.classList.add('flash-win');
+        setTimeout(() => machine.classList.remove('flash-win'), 800);
         announce('Win');
       } else {
         sLose();
         message.textContent = 'No win — try again!';
       }
       applyAchievementChecks(win);
-      held.fill(false);
-      state.reelsHold = [...held];
-      renderReels();
       ensureCoins(state.bet);
       updateUI();
       spinning = false;
-    }, duration);
-  }
-
-  function toggleHold(i) {
-    if (spinning) return;
-    held[i] = !held[i];
-    state.reelsHold = [...held];
-    sHold();
-    renderReels();
+    }, settleTime + 50);
   }
 
   function changeBet(delta) {
@@ -98,25 +138,52 @@ export function viewGame() {
   }
 
   const machine = el('section', { class: 'slot-machine' });
-  const reelsRow = el('div', { class: 'reels' });
+  const reelsRow = el('div', { class: 'reels marquee' });
+  // Add animated marquee bulbs
+  const topLights = el('div', { class: 'lights top' });
+  const bottomLights = el('div', { class: 'lights bottom' });
+  for (let i = 0; i < 36; i++) {
+    const bulbTop = el('span', { class: `bulb ${i % 2 ? 'alt' : ''}`, style: `--i:${i}` });
+    const bulbBottom = el('span', { class: `bulb ${i % 2 ? 'alt' : ''}`, style: `--i:${i}` });
+    topLights.appendChild(bulbTop);
+    bottomLights.appendChild(bulbBottom);
+  }
   const reelEls = [0, 1, 2].map((i) => {
-    const r = el('div', { class: 'reel', 'data-hold': String(held[i]) }, [
-      el('div', { class: 'symbol', style: 'will-change: transform' }, [symbolEmoji(reels[i])]),
-      el('button', { class: 'hold-toggle', title: 'Hold this reel' }, ['HOLD'])
-    ]);
-    r.querySelector('.hold-toggle').addEventListener('click', () => toggleHold(i));
+    const r = el('div', { class: 'reel' });
+    const windowEl = el('div', { class: 'reel-window' });
+    const strip = buildStripElement(reels[i]);
+    windowEl.appendChild(strip);
+    r.appendChild(windowEl);
+    r.appendChild(el('div', { class: 'reel-highlight' }));
     reelsRow.appendChild(r);
     return r;
   });
   machine.appendChild(reelsRow);
+  reelsRow.appendChild(topLights);
+  reelsRow.appendChild(bottomLights);
 
   const controls = el('div', { class: 'controls' });
   const left = el('div', { class: 'left-controls' });
   const right = el('div', { class: 'right-controls' });
 
-  const spinBtn = el('button', { class: 'btn btn-primary' }, ['Spin (Space)']);
-  spinBtn.addEventListener('click', spin);
-  left.appendChild(spinBtn);
+  // Lever arm for spin
+  let arm = el('button', { class: 'arm', title: 'Pull to spin' });
+  arm.appendChild(el('div', { class: 'socket' }));
+  arm.appendChild(el('div', { class: 'track' }));
+  arm.appendChild(el('div', { class: 'stick' }));
+  arm.appendChild(el('div', { class: 'knob' }));
+  const onPointerDown = () => {
+    if (arm.disabled) return;
+    arm.classList.add('pulling');
+  };
+  const onPointerUp = () => {
+    if (!arm.classList.contains('pulling')) return;
+    arm.classList.remove('pulling');
+    spin();
+  };
+  arm.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointerup', onPointerUp);
+  machine.appendChild(arm);
 
   const betDown = el('button', { class: 'btn btn-ghost', title: 'Decrease bet' }, ['-']);
   const betUp = el('button', { class: 'btn btn-ghost', title: 'Increase bet' }, ['+']);
@@ -149,9 +216,6 @@ export function viewGame() {
     if (e.code === 'Space') {
       e.preventDefault();
       spin();
-    } else if (e.key === 'h' || e.key === 'H') {
-      e.preventDefault();
-      toggleHold(0);
     } else if (/^[1-9]$/.test(e.key)) {
       const digit = Number(e.key);
       state.bet = Math.max(1, Math.min(50, digit));
@@ -163,6 +227,7 @@ export function viewGame() {
   // Clean up when view is detached
   machine.addEventListener('detach', () => {
     window.removeEventListener('keydown', keyHandler);
+    window.removeEventListener('pointerup', onPointerUp);
   });
 
   return machine;

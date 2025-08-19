@@ -1,4 +1,5 @@
 import { el } from '../utils.js';
+import { Symbols } from '../slot.js';
 
 export function viewAbout() {
   const frag = document.createDocumentFragment();
@@ -16,6 +17,32 @@ export function viewAbout() {
   sec.appendChild(el('p', {}, [
     'Credits: emojis via Unicode, sound via Web Audio API.'
   ]));
+
+  const payoutSec = el('section', { class: 'card', style: 'margin-top:12px' });
+  payoutSec.appendChild(el('h3', {}, ['Payouts']));
+  const list = el('div', { class: 'grid' });
+  Symbols.forEach((s) => {
+    list.appendChild(
+      el('div', { class: 'badge' }, [
+        el('div', { class: 'icon' }, [s.emoji]),
+        el('div', {}, [
+          el('div', { style: 'font-weight:900' }, [`3x ${s.emoji}`]),
+          el('div', { class: 'muted' }, [`Pays ${s.payout}x bet`])
+        ])
+      ])
+    );
+  });
+  payoutSec.appendChild(list);
+  frag.appendChild(payoutSec);
+
+  const pairs = el('section', { class: 'card', style: 'margin-top:12px' });
+  pairs.appendChild(el('h3', {}, ['Other payouts']))
+  pairs.appendChild(el('ul', {}, [
+    el('li', {}, ['Any adjacent pair pays 1.6x bet']),
+    el('li', {}, ['Outer pair (first and third reel) pays 1.2x bet']),
+    el('li', { class: 'muted' }, ['Triples pay as listed above (symbol multiplier × bet).'])
+  ]));
+  frag.appendChild(pairs);
   frag.appendChild(sec);
   return frag;
 }

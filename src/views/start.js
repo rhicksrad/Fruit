@@ -12,8 +12,6 @@ export function viewStart() {
       el('div', { class: 'kbd-row', style: 'margin: 12px 0' }, [
         el('span', { class: 'kbd' }, ['Space']),
         ' Spin',
-        el('span', { class: 'kbd' }, ['H']),
-        ' Hold reel',
         el('span', { class: 'kbd' }, ['1–9']),
         ' Bet size',
       ]),
@@ -46,7 +44,7 @@ export function viewStart() {
   const panels = el('section', { class: 'grid', style: 'margin-top: 20px' }, [
     el('div', { class: 'card' }, [
       el('h3', {}, ['How to play']),
-      el('p', { class: 'muted' }, ['Set your bet, spin the reels, and aim for matching symbols. Hold reels to keep them between spins. Earn more coins to unlock achievements.'] ),
+      el('p', { class: 'muted' }, ['Set your bet, spin the reels, and aim for matching symbols. Earn more coins to unlock achievements.'] ),
     ]),
     el('div', { class: 'card' }, [
       el('h3', {}, ['No stakes, all fun']),

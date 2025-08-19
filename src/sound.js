@@ -12,6 +12,7 @@ export function setSoundEnabled(isEnabled) {
 function beep({ freq = 440, dur = 0.1, type = 'sine', gain = 0.04 } = {}) {
   if (!enabled) return;
   ensureCtx();
+  try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch {}
   const osc = audioCtx.createOscillator();
   const g = audioCtx.createGain();
   osc.type = type;
@@ -33,5 +34,12 @@ export function sWin() {
   [660, 880, 990].forEach((f, i) => setTimeout(() => beep({ freq: f, dur: 0.12, type: 'square', gain: 0.05 }), i * 110));
 }
 export function sLose() { beep({ freq: 180, dur: 0.12, type: 'sine', gain: 0.03 }); }
+
+export function primeSound() {
+  try {
+    ensureCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch {}
+}
 
 
