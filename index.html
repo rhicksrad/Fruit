@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e11d48" />
+    <title>Fruit Machine 🎰</title>
+    <meta name="description" content="A colorful, classic-style Fruit Machine slot game for fun coins. Play, unlock achievements, and customize settings." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%8D%8A%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body class="theme-classic">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-emoji" aria-hidden="true">🍒</span>
+        <span class="brand-title">Fruit Machine</span>
+      </div>
+      <nav id="topNav" class="top-nav" aria-label="Primary">
+        <a data-route="#/start" href="#/start" class="nav-link">Start</a>
+        <a data-route="#/game" href="#/game" class="nav-link">Play</a>
+        <a data-route="#/achievements" href="#/achievements" class="nav-link">Achievements</a>
+        <a data-route="#/settings" href="#/settings" class="nav-link">Settings</a>
+        <a data-route="#/about" href="#/about" class="nav-link">About</a>
+      </nav>
+      <div class="status">
+        <div id="coinDisplay" class="coin-display" title="Your fun coins">
+          <span class="coin-emoji" aria-hidden="true">🪙</span>
+          <span id="coinAmount">0</span>
+        </div>
+      </div>
+    </header>
+
+    <main id="app" class="app-main" tabindex="-1"></main>
+    <div id="aria-live" aria-live="polite" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;"></div>
+
+    <footer class="app-footer">
+      <p>
+        For fun only — no real money or prizes. Built for the web and GitHub Pages.
+      </p>
+    </footer>
+
+    <noscript>
+      Please enable JavaScript to play Fruit Machine.
+    </noscript>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+  </html>
+
+
